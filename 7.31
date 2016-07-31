@@ -1,0 +1,122 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include <stdarg.h>
+#include<string.h>
+#include<assert.h>
+
+
+
+int average(int n, ...)
+{
+	int i = 0;
+	int sum = 0;
+	va_list arg;
+	va_start(arg, n);
+	
+	for(i=0; i<n; i++)
+	{
+		sum += va_arg(arg, int);
+	}
+	va_end(arg);
+	return sum/n;
+}
+
+int main()
+{
+	printf("%d\n",average(1,1));
+	printf("%d\n",average(2,1,3));
+	printf("%d\n",average(5,1,2,3,4,5));
+
+	system("pause");
+	return 0;
+}
+int Max(int n, ...)
+{
+	int i = 0;
+	int Max = 0;
+	int val = 0;
+	va_list arg;
+	va_start(arg, n);
+	
+	for(i=0; i<n; i++)
+	{
+		int val = va_arg(arg, int);
+
+		if(Max < val )
+		{
+			Max = val;
+		}
+	}
+	va_end(arg);
+
+	return Max;
+}
+
+int main()
+{
+	printf("%d\n",Max(10,1,3,5,7,9,11,1,15,56,45));
+	system("pause");
+	return 0;
+}
+void reverse_str(char *left,char *right)
+{
+	char temp;
+	assert(left != NULL);
+	assert(right != NULL);
+
+	if(left >= right )
+	{
+		return ;//无返回值，但在此程序什么操作也不做
+	}
+	else  
+	{
+	    temp = *left;
+		*left = *right;
+		*right = '\0';
+		reverse_str(left + 1,right - 1);	
+		*right = temp; 
+
+	}
+
+}
+
+int main()
+{
+	char arr[] = "abcdef";
+	char *str1 = arr;
+	char *str2 = arr + strlen(arr) -1;
+	reverse_str(str1,str2-2);
+	printf("%s\n",arr);
+	system("pause");
+	return 0;
+}
+
+
+int fib(int n)
+{
+	int a = 1;
+	int b = 1;
+	int c = 0;
+
+	while(n>2)
+	{
+		c = a + b;
+		a = b;
+		b = c;
+
+		n--;
+	}
+	return c;
+}
+
+int main()
+{
+	int n = 0;
+	scanf("%d",&n);
+	printf("%d\n",fib(n));
+
+	system("pause");
+	return 0;
+
+
+}
