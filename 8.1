@@ -1,0 +1,113 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<stdarg.h>
+
+int DigitSum(n)
+{
+	if(n>9)
+	{
+		return ( n%10 + DigitSum(n/10));
+
+	}
+	return n%10;
+}
+
+int main()
+{
+	int n = 0;
+	scanf("%d",&n);
+	printf("%d\n",DigitSum(n));
+
+	system("pause");
+	return 0;
+}
+
+int fac(int n, int k)
+{
+	while(k>0)
+	{
+		return n*fac(n, k-1);
+
+	}
+	if( n==0)
+	{
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+int main()
+{
+	int n = 0;
+	int k = 0;
+	printf("请输入 n 和 k :");
+	scanf("%d %d",&n,&k);
+	printf("%d\n",fac(n,k));
+	
+	system("pause");
+	return 0;
+}
+
+void my_printf(const char *format, ...)
+{
+	va_list arg;
+	va_start(arg, format);
+	
+	while(*format)
+	{
+		if(*format != '%')//处理遇到%之前但是不属于格式标准的字符
+		{
+			putchar(*format);
+				format++;
+		}
+		else
+		{
+			format++;//遇到%指针后移
+			switch(*format)
+			{
+				format++;
+				case 's':
+					{
+						char *str = va_arg(arg ,char *);
+						puts(str);
+						format++;
+						break;
+					}
+				case 'c':
+					{
+						char ch = va_arg(arg, char);
+						putchar(ch);
+						format++;
+						break;
+					}
+
+				default:
+					{
+						putchar(*format);//处理格式标字符之后的非标准的字符
+						format++;
+					}
+
+			}
+			
+		}
+
+	}
+	va_end(arg);
+		
+}
+
+int main()
+{
+	char *str = "hello";
+	char a = 'b';
+	char b = 'i';
+	char c = 't';
+	my_printf("%s%c%c%c.",str,a,b,c);
+
+	system("pause");
+	return 0;
+
+}
