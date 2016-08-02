@@ -1,0 +1,181 @@
+1.使用数组和指针的形式实现冒泡排序，并优化。bubble_sort();
+
+#include <stdio.h>
+#include <stdlib.h>
+
+
+void bubble_sort(int *arr,int n)
+{
+	int i = 0;
+	int j = 0;
+	int temp = 0;
+	for(i=0; i<n-1; i++)
+	{
+		for(j = 0; j<n-1; j++)
+		{
+			if(arr[j]>arr[j+1])
+			{
+				temp = arr[j];
+				arr[j] = arr[j+1];
+				arr[j+1] = temp;
+			}
+		}
+	
+	}
+
+}
+
+void bubble_sort(int *arr,int n)
+{
+	int *ret = arr;
+	int temp = 0;
+	int i = 0;
+	int j = 0;
+  assert(arr);
+	for(i=0; i<n-1; i++)
+	{	for(j=0; j<n-1; j++)
+		{
+			if(*arr > *(arr+1))
+			{
+				temp = *arr;
+				*arr = *(arr+1);
+				*(arr+1) = temp;
+			}
+			arr++;
+		}
+		arr = ret;
+	}
+
+}
+
+int main()
+{
+	int i = 0;
+	int arr[] = {2,1,7,3,9,6,4,8,5};
+	int n = sizeof(arr)/sizeof(arr[0]);
+
+	bubble_sort(arr,n);
+	for(i=0; i<n; i++)
+	{
+		printf("%d",arr[i]);
+	}
+	system("pause");
+	return 0;
+
+}
+
+
+2.调整数组使奇数全部都位于偶数前面。
+
+题目：
+输入一个整数数组，实现一个函数，来调整该数组中数字的顺序使得数组中所有的奇数位于数组的前半部分，所有偶数位于数组的后半部分。
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+
+void permute(int *left, int *right)
+{
+	int temp = 0;
+	assert(left);
+	assert(right);
+	while(left<right)
+	{
+		if( (*left)%2==0 && (*right)%2==1 )
+		{
+			temp = *left;
+			*left = *right;
+			*right = temp;
+
+			left++;
+			right--;
+		}
+		else if( (*left)%2==1 && (*right)%2==0 )
+		{
+			left++;
+			right--;
+
+		}
+		else if( (*left)%2==0 && (*right)%2==0 )
+		{
+			right--;
+		}
+		else
+		{
+			left++;
+		}
+
+	}
+	
+}
+
+int main()
+{
+	int i = 0;
+	int arr[] = {2,1,7,3,9,6,4,8,5,0};
+	int n = sizeof(arr)/sizeof(arr[0]); 
+	
+	permute(arr,arr+n-1);
+	for(i=0; i<n; i++)
+	{
+		printf("%d",arr[i]);
+	}
+	system("pause");
+	return 0;
+
+}
+
+3.
+有一个二维数组.----杨氏矩阵
+数组的每行从左到右是递增的，每列从上到下是递增的.
+在这样的数组中查找一个数字是否存在。
+时间复杂度小于O(N);
+
+#include <stdio.h>
+#include <stdlib.h>
+
+
+int find(int arr[][3], int colums, int rows, int key)
+{
+	int i = 0;
+
+	for(i=0; i<colums; i++)
+	{
+		if( key==arr[i][rows-1] )
+		{
+			return 1;
+		}
+		else
+		{
+			rows--;
+
+			if(rows == 0)
+			{
+				return 0;
+			}
+		}
+	}
+	return 0;
+
+}
+
+int main()
+{
+	int arr[][3] = {{1,2,3},{4,5,6},{7,8,9}};
+	int key = 0;
+	int ret = 0;
+	scanf("%d",&key);
+	ret = find(arr,3,3,key);
+	if( ret==1 )
+	{
+		printf("%d 存在\n",key);
+	}
+	else
+	{
+		printf("%d 不存在\n",key);
+	}
+	system("pause");
+	return 0;
+}
