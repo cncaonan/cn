@@ -1,0 +1,343 @@
+哈夫曼树实现文件压缩步骤：
+	一、压缩
+		1、统计每个字符出现的次数，用字符出现的次数和权值构成哈夫曼树
+		2、哈夫曼树由最小堆创建，字符频率小的节点在顶端，频率打的在低端
+		3、从哈夫曼树中获取哈夫曼编码
+		4、获取编码后凑齐8位就写入压缩文件，不够8位用0补齐
+		5、写配置文件：文件后缀，字符种类行数，统计的字符的信息，获取的哈夫曼编码
+
+	二、解压缩
+		1、读取压缩文件，取到原文件信息。
+		2、读取文件字符统计信息和哈夫曼编码吗重新构建哈夫曼树
+
+
+
+
+
+#define _CRT_SECURE_NO_WARNINGS
+
+#pragma once
+
+#include "heap.hpp"
+#include "Huffman.hpp"
+#include <string>
+#include<stdlib.h>
+#include <assert.h>
+
+
+
+struct FileInfo
+{
+	FileInfo()
+		:_count(0)
+		,_ch(0)
+	{}
+
+	std::string _strCode;//字符编码
+	unsigned char _ch;//汉字的GB编码为2个字节，高字节的最高位为1，
+			 //即高字节>127，故统计函数要用unsigned char(0--255),而非char
+	size_t _count;
+	bool operator!=(const FileInfo& fileInfo)const
+	{
+		return _count!=fileInfo._count;
+	}
+	FileInfo operator+(const FileInfo& fileInfo)
+	{
+		FileInfo ret(*this);
+		ret._count +=fileInfo._count;
+		return ret;
+	}
+	bool operator<(const FileInfo& fileInfo)const
+	{
+		return _count<fileInfo._count;
+	}
+};
+
+
+class FileCompress
+{
+public:
+
+	FileCompress()
+	{
+		memset(_fileInfo, 0, sizeof(_fileInfo));
+		for (size_t idx = 0; idx < 256; ++idx)
+		{
+			_fileInfo[idx]._count = 0;
+			_fileInfo[idx]._ch = idx;
+		}
+	}
+
+	FileCompress(const std::string &strFileName)
+	{
+	   memset(_fileInfo, 0, sizeof(_fileInfo));
+	}
+
+	void FileCount(const std::string &strFileName)
+	{
+		//统计相同字符出现的次数：以二进制形式，防止越界
+		FILE* fOut = fopen(strFileName.c_str(), "rb");
+		assert(fOut);
+		unsigned char readBuff[1024];
+		while (true)
+		{
+			size_t readSize = fread(readBuff, 1, 1024, fOut);
+			if (0 == readSize)
+				break;
+			for (size_t idx = 0; idx < readSize; ++idx)
+			{
+				_fileInfo[readBuff[idx]]._ch = readBuff[idx];
+				_fileInfo[readBuff[idx]]._count++;
+			}
+		}
+		fclose(fOut);
+	}
+	void CompressFile(const std::string &strFileName)
+	{
+		//获取哈夫曼编码
+		FileCount(strFileName);
+		FileInfo invalid;
+		HuffmanTree<FileInfo> ht(_fileInfo, sizeof(_fileInfo) / sizeof(_fileInfo[0]), invalid);
+		HuffmanTreeNode<FileInfo>* root = ht.GetRoot();
+		_GenerateHuffmanCode(root);
+		//保存压缩信息
+		unsigned char wrBuff[1024];
+	    std::string compressFileName;
+		compressFileName = GetFileName("F:\\楠哥\\文档\\Project_VS2013\\Visual Studio 2012\\Heap\\Heap\\1.txt") + ".hzp";
+		
+		FILE* fIn = fopen(compressFileName.c_str() , "wb");
+		assert(fIn);
+		//写入编码信息
+		std::string strHead;
+		strHead +=	GetFilePostFix("F:\\楠哥\\文档\\Project_VS2013\\Visual Studio 2012\\Heap\\Heap\\1.txt");
+		strHead += "\n";
+		size_t idx = 0;
+		size_t lineCount = 0;
+		std::string strCode;
+		char strLineCount[32];
+		while (idx < sizeof(_fileInfo)/sizeof(_fileInfo[0]))
+		{
+			
+			if (_fileInfo[idx]._count)
+			{
+				strCode += _fileInfo[idx]._ch;
+				strCode += ':';
+				_itoa(_fileInfo[idx]._count, strLineCount, 10);//将统计的int数据转化为字符型写入压缩文件
+				strCode += strLineCount;
+				strCode += '\n';
+				lineCount++;
+			}
+			idx++;
+		}
+		_itoa(lineCount, strLineCount, 10);	//行号转化为字符串写入压缩文件
+		strHead += strLineCount;
+		strHead += '\n';
+		strHead += strCode;
+		fwrite(strHead.c_str(), 1, strHead.length(), fIn);
+
+		FILE* fOut = fopen(strFileName.c_str(), "rb");
+		assert(fOut);
+		int writeSize = 0;
+		int value = 0;
+		int pos = 0;
+
+		//往压缩文件里面写哈夫曼编码
+		while (true)
+		{  //从文件中读取串
+			int ReadSize = fread(wrBuff, 1, 1024, fOut);
+			if (0 == ReadSize)
+				break;
+			for (int idx = 0; idx < ReadSize; ++idx)
+			{
+				std::string strCode = _fileInfo[wrBuff[idx]]._strCode;
+				for (size_t idx = 0; idx < strCode.length(); ++idx)
+				{
+					value <<= 1;
+					if ('1' == strCode[idx])
+						value |= 1;
+					if (8 == ++pos)
+					{
+						wrBuff[writeSize++] = value;
+						if (1024 == writeSize)
+						{
+							fwrite(wrBuff, 1, 1024, fIn);
+							writeSize = 0;
+						}
+						value = 0;
+						pos = 0;
+					}
+				}
+			}
+		}
+		//处理---遇到问题：当不足 8 byte 时，用 0 补齐 8 byte
+		if (pos < 8 )
+		{
+			value <<= (8 - pos);
+			wrBuff[writeSize++] = value;
+			fwrite(wrBuff, 1, writeSize, fIn);
+		}
+		fclose(fOut);
+		fclose(fIn);
+	}
+	
+
+	void UnCompressFile(const std::string compressFileName)
+	{
+		FILE* fOut = fopen(compressFileName.c_str(), "rb");
+		assert(fOut);
+		std::string strPostFix;
+		GetHead(fOut,strPostFix);//读取头部信息
+		std::string fileName("_1");
+		fileName += strPostFix;
+		FILE* fIn = fopen(fileName.c_str(), "wb");
+		assert(fIn);
+		
+		int pos = 8;
+		HuffmanTree<FileInfo> ht(_fileInfo, sizeof(_fileInfo) / sizeof(_fileInfo[0]), FileInfo());
+		HuffmanTreeNode<FileInfo>* pRoot = ht.GetRoot();
+		HuffmanTreeNode<FileInfo>* pCur = ht.GetRoot();
+		long long fileSize = pRoot->_weight._count;
+		_GenerateHuffmanCode(pRoot);
+		unsigned char rdBuff[1024];
+		unsigned char wrBuff[1024];
+		int wrSize = 0;
+		while (true)
+		{
+			//读取压缩文件
+			int rdSize=fread(rdBuff, 1, 1024, fOut);
+			if (rdSize == 0)
+				break;
+			int idx = 0;
+			for (idx = 0; idx < rdSize && fileSize != 0; ++idx)
+			{
+				
+				while (idx < rdSize)
+				{
+					--pos;
+					if (rdBuff[idx] & (1 << pos))
+						pCur = pCur->_pRight;
+					else
+						pCur = pCur->_pLeft;
+
+					if (NULL == pCur->_pLeft && pCur->_pRight == NULL)
+					{
+						wrBuff[wrSize++] = pCur->_weight._ch;
+						pCur = pRoot;
+						if (wrSize == 1024)
+						{
+							fwrite(wrBuff, 1, wrSize, fIn);
+							wrSize = 0;
+						}
+						if (0 == --fileSize)
+						{
+							fwrite(wrBuff, 1, wrSize, fIn);
+							break;
+						}
+						
+					}
+					if(0 == pos)
+					{
+						pos = 8;
+						break;
+					}
+				}	
+			}
+		}
+		fclose(fOut);
+		fclose(fIn);
+	}
+
+
+	std::string GetFilePostFix(const std::string strFilePath)
+	{
+		std::string FileName;
+		int begin = strFilePath.find_last_of("\\");
+		int end = strFilePath.find_last_of(".");
+		
+		FileName = strFilePath.substr(begin+2);
+		return FileName;
+	}
+	std::string GetFileName(const std::string strFilePath)
+	{
+		std::string FileName;
+		size_t begin = strFilePath.find_last_of("\\");
+		size_t end = strFilePath.find_last_of (".");
+		FileName = strFilePath.substr(begin+1, end-begin-1);
+		return FileName;
+	}
+private:
+
+	//获取哈夫曼编码
+	void _GenerateHuffmanCode(HuffmanTreeNode<FileInfo>* pRoot)
+	{
+		if (pRoot)
+		{
+			_GenerateHuffmanCode(pRoot->_pLeft);
+			_GenerateHuffmanCode(pRoot->_pRight);
+
+			HuffmanTreeNode<FileInfo>* pCur = pRoot;
+			HuffmanTreeNode<FileInfo>* pParent = pCur->_pParent;
+			std::string strCode;
+
+			if (NULL == pCur->_pLeft && NULL == pCur->_pRight)
+			{
+				while (pParent)
+				{
+					if (pParent->_pLeft == pCur)
+						strCode += '0';
+					if (pParent->_pRight == pCur)
+						strCode += '1';
+					pParent = pParent->_pParent;
+					pCur = pCur->_pParent;
+				}
+				std::reverse(strCode.begin(), strCode.end()); //获取的编码是从叶子节点向根节点的，需要逆置
+				_fileInfo[pRoot->_weight._ch]._strCode = strCode;
+			}
+		}
+	}
+
+
+	//处理头部，用string
+	void GetHead(FILE* fp, std::string& strPostFix)
+	{
+		strPostFix += ReadLine(fp);
+		size_t linCount = atoi(ReadLine(fp).c_str());
+		std::string strCode;
+		while (linCount--)
+		{
+			std::string strCode = ReadLine(fp);
+			unsigned char strCodetemp = strCode[0];
+			_fileInfo[strCodetemp]._count = (long long)atoi(strCode.substr(2).c_str());
+		}
+	}
+	//读取多行信息
+	std::string ReadLine(FILE*& fp)
+	{
+		std::string strLine; 
+		if (feof(fp))//看文件是否是结尾
+			return strLine;
+
+		char c = fgetc(fp);
+		while ('\n' != c || strLine.length() == 0)// 
+		{
+			strLine += c;
+			c = fgetc(fp);
+			if (feof(fp))//看文件是否是结尾
+				return strLine;
+		}
+		return strLine;
+	}
+
+
+private:
+	FileInfo _fileInfo[256];
+};
+
+
+void Test()
+{
+	FileCompress file;
+	file.CompressFile("1.txt");
+   	file.UnCompressFile("1.hzp");
+}
+
