@@ -1,0 +1,114 @@
+#include <string>
+#include <math.h>
+int GetMaxBit(int * array, int size)
+{	/*
+	size_t count = 1;
+	int radix = 10;
+	for(size_t i = 0; i < size; ++i)
+	{
+		while(array[i] >= radix)
+		{
+			count++;
+			radix *= 10;
+		}
+	}
+	return count;
+	*/
+	int maxValue = array[0];
+	int radix = 10;
+	for(int i = 1; i<size; ++i)
+	{
+		if(maxValue < array[i])
+			maxValue = array[i];
+	}
+	int count = 1;
+	while(maxValue >= 10)
+	{
+		count++;
+		maxValue /= 10;
+	}
+
+	return count;
+}
+
+/*
+void RadixSortLSD(int *array, size_t size)
+{
+	int maxBit = GetMaxBit(array, size);
+	int radix = 1;
+	for(int idx = 0; idx < maxBit; ++idx)
+	{
+		int count[10] = {0};
+		//统计个位出现的次数
+		for(size_t i = 0; i < size; ++i)
+		{
+			count[(array[i]/radix)%10]++;
+		}
+
+		int Addr[10] = {0};
+		//统计每个桶的起始位置
+		for(size_t i = 1; i < 10; ++i)
+		{
+			Addr[i] = Addr[i - 1] + count[i - 1];
+		}
+
+		int *bucket = new int[size];
+		for(size_t i = 0; i < size; ++i)
+		{
+			int k = array[i]/radix%10;
+			bucket[Addr[k]] = array[i];
+			Addr[k]++;
+		}
+		memcpy(array, bucket, size*sizeof(array[0]));
+		radix *= 10;
+	}
+}
+
+*/
+
+
+
+void _RadixSortMSD(int *array, int left, int right, int Bit, int *bucket)
+{
+	if(Bit < 1)
+		return;
+	int radix = (int)pow(10.0, Bit - 1);
+	int count[10] = {0};
+	for(int idx = left; idx < right; ++idx)
+	{
+		count[(array[idx]/radix)%10]++;
+	}
+
+	int Addr[10] = {0};
+	for(size_t idx = 1; idx < 10; ++idx)
+	{
+		Addr[idx] = Addr[idx - 1] + count[idx - 1];
+	}
+
+	for(int idx = left; idx < right; ++idx)
+	{
+		int k = (array[idx]/radix)%10;
+		bucket[left + Addr[k]]  = array[idx];
+		Addr[k]++;
+	}
+
+	memcpy(array + left, bucket + left, sizeof(array[0])*(right - left));
+
+	for(size_t idx = 0; idx < 10; ++idx)
+	{
+		if(count[idx] <= 1)
+			continue;
+		size_t begin = left + Addr[idx] - count[idx];
+		size_t end = begin + count[idx];
+		_RadixSortMSD(array, begin, end, Bit - 1, bucket);
+	}
+}
+
+void RadixSortMSD(int *array, int size)
+{
+	int maxBit = GetMaxBit(array, size);
+	int *bucket = new int[size];
+	_RadixSortMSD(array, 0, size, maxBit, bucket);
+	delete[] bucket;
+
+}
